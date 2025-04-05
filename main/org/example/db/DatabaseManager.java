@@ -1,4 +1,4 @@
-package java.org.example.db;
+package org.example.db;
 
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;

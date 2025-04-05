@@ -1,4 +1,4 @@
-package java.org.example;
+package org.example;
 
 
 import org.example.logic.BotLogic;

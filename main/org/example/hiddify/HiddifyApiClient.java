@@ -1,4 +1,4 @@
-package java.org.example.hiddify;
+package org.example.hiddify;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;

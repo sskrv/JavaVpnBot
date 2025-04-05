@@ -1,4 +1,4 @@
-package java.org.example.yookassa;
+package org.example.yookassa;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;

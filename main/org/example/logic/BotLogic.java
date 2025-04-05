@@ -129,6 +129,13 @@ public class BotLogic extends TelegramLongPollingBot {
             return;
         }
 
+        // Отдельно обрабатываем кнопку отмены оплаты
+        if (callbackData.startsWith("cancel_payment:")) {  // Если нажали на кнопку отмены оплаты
+            String paymentId = callbackData.substring("cancel_payment:".length());
+            cancelPayment(chatId, userId, paymentId);
+            return;
+        }
+
         switch (callbackData) {
             case "buy_key" -> handleBuyKeyRequest(chatId, userId);
             case "show_key" -> handleShowExistingKey(chatId, userId);
@@ -165,7 +172,7 @@ public class BotLogic extends TelegramLongPollingBot {
     private InlineKeyboardMarkup createPaymentCheckKeyboard(String paymentId) {
         return createKeyboard(
             createButtonRow(createButton("✅ Проверить оплату", "check_payment:" + paymentId)),
-            createButtonRow(createButton("⬅️ Отменить и вернуться в меню", "main_menu"))
+            createButtonRow(createButton("⬅️ Отменить и вернуться в меню", "cancel_payment:" + paymentId))
         );
     }
     
@@ -270,6 +277,10 @@ public class BotLogic extends TelegramLongPollingBot {
         );
         
         sendMessage(createMessage(chatId, errorText, keyboard));
+    }
+
+    private void sendCancelPaymentMessage(String chatId, String errorText) {
+        sendMessage(createMessage(chatId, errorText, null));
     }
     
     // Логика бота
@@ -407,6 +418,19 @@ public class BotLogic extends TelegramLongPollingBot {
         } catch (Exception e) {
             logger.error("Error checking payment status for user {}: {}", userId, e.getMessage());
             sendErrorMessage(chatId, "❌ Произошла ошибка при проверке статуса платежа. Пожалуйста, попробуйте позже.");
+        }
+    }
+
+    private void cancelPayment(String chatId, long userId, String paymentId) {
+        logger.info("Cancel payment for user {}, paymentId: {}", userId, paymentId);
+        try {
+            yooKassaPayment.cancelPayment(paymentId);
+            sendCancelPaymentMessage(chatId, "\uD83D\uDCC9 Платёж отменён");
+
+            logger.info("Payment successfully canceled for user {}, paymentId: {}", userId, paymentId);
+        } catch (Exception e) {
+            logger.error("Error cancel payment for user {}: {}", userId, e.getMessage());
+            sendErrorMessage(chatId, "❌ Произошла ошибка при отмене платежа. Пожалуйста, попробуйте позже.");
         }
     }
 
