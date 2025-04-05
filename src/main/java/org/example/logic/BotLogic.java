@@ -8,6 +8,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
+import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageReplyMarkup;
 import org.telegram.telegrambots.meta.api.objects.CallbackQuery;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
@@ -119,6 +120,7 @@ public class BotLogic extends TelegramLongPollingBot {
         String callbackData = callbackQuery.getData();  // Данные с кнопки
         String chatId = callbackQuery.getMessage().getChatId().toString();
         long userId = callbackQuery.getFrom().getId();
+        int messageId = callbackQuery.getMessage().getMessageId();
 
         logger.info("Received callback '{}' from user {}", callbackData, userId);
 
@@ -126,6 +128,8 @@ public class BotLogic extends TelegramLongPollingBot {
         if (callbackData.startsWith("check_payment:")) {  // Если нажали на кнопку проверки оплаты
             String paymentId = callbackData.substring("check_payment:".length());
             checkPaymentStatus(chatId, userId, paymentId);
+            removeInlineKeyboard(chatId, messageId);
+            removeInlineKeyboard(chatId, messageId);
             return;
         }
 
@@ -133,15 +137,33 @@ public class BotLogic extends TelegramLongPollingBot {
         if (callbackData.startsWith("cancel_payment:")) {  // Если нажали на кнопку отмены оплаты
             String paymentId = callbackData.substring("cancel_payment:".length());
             cancelPayment(chatId, userId, paymentId);
+            removeInlineKeyboard(chatId, messageId);
             return;
         }
 
         switch (callbackData) {
-            case "buy_key" -> handleBuyKeyRequest(chatId, userId);
-            case "show_key" -> handleShowExistingKey(chatId, userId);
-            case "instructions" -> sendInstructions(chatId);
-            case "main_menu" -> sendMainMenu(chatId);
-            case "pay_vpn" -> initiatePayment(chatId, userId);
+            case "buy_key" -> {
+                handleBuyKeyRequest(chatId, userId);
+                removeInlineKeyboard(chatId, messageId);
+            }
+            case "show_key" -> {
+                handleShowExistingKey(chatId, userId);
+                removeInlineKeyboard(chatId, messageId);
+            }
+            case "instructions" -> {
+                sendInstructions(chatId);
+                removeInlineKeyboard(chatId, messageId);
+            }
+            case "main_menu" -> {
+                sendMainMenu(chatId);
+                removeInlineKeyboard(chatId, messageId);
+
+            }
+            case "pay_vpn" -> {
+                initiatePayment(chatId, userId);
+                removeInlineKeyboard(chatId, messageId);
+
+            }
         }
     }
 
@@ -431,6 +453,19 @@ public class BotLogic extends TelegramLongPollingBot {
         } catch (Exception e) {
             logger.error("Error cancel payment for user {}: {}", userId, e.getMessage());
             sendErrorMessage(chatId, "❌ Произошла ошибка при отмене платежа. Пожалуйста, попробуйте позже.");
+        }
+    }
+
+    private void removeInlineKeyboard(String chatId, int messageId) {
+        EditMessageReplyMarkup editMessageReplyMarkup = new EditMessageReplyMarkup();
+        editMessageReplyMarkup.setChatId(chatId);
+        editMessageReplyMarkup.setMessageId(messageId);
+        editMessageReplyMarkup.setReplyMarkup(new InlineKeyboardMarkup(Collections.emptyList())); // Создаем пустую клавиатуру
+
+        try {
+            execute(editMessageReplyMarkup);
+        } catch (TelegramApiException e) {
+            logger.error("Failed to remove inline keyboard for chat {}: {}", chatId, e.getMessage());
         }
     }
 
