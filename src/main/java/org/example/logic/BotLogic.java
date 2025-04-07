@@ -1,5 +1,10 @@
 package org.example.logic;
 
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
 import org.example.config.BotConfig;
 import org.example.db.DatabaseManager;
 import org.example.hiddify.HiddifyApiClient;
@@ -8,62 +13,24 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
+import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageReplyMarkup;
 import org.telegram.telegrambots.meta.api.objects.CallbackQuery;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
-import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
-
-import java.math.BigDecimal;
-import java.time.Instant;
-import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 public class BotLogic extends TelegramLongPollingBot {
     private static final Logger logger = LoggerFactory.getLogger(BotLogic.class);
     private static final BigDecimal VPN_PRICE = new BigDecimal("100.00");
-    private static final long PAYMENT_TIMEOUT_MINUTES = 5;
 
     private final BotConfig botConfig;
     private final DatabaseManager dbManager;
     private final HiddifyApiClient hiddifyClient;
     private final YooKassaPayment yooKassaPayment;
-
-    // Хранение информации о платежах (paymentId -> PaymentInfo)
-    private final Map<String, PaymentInfo> paymentTracker = new ConcurrentHashMap<>();
-
-    // Класс для хранения информации о платежах
-    private static class PaymentInfo {
-        private final long userId;
-        private final String chatId;
-        private final Instant createdAt;
-
-        public PaymentInfo(long userId, String chatId) {
-            this.userId = userId;
-            this.chatId = chatId;
-            this.createdAt = Instant.now();
-        }
-
-        public long getUserId() {
-            return userId;
-        }
-
-        public String getChatId() {
-            return chatId;
-        }
-
-        public boolean isExpired() {
-            return createdAt.plus(PAYMENT_TIMEOUT_MINUTES, ChronoUnit.MINUTES).isBefore(Instant.now());
-        }
-    }
 
     @Deprecated
     public BotLogic(BotConfig botConfig, HiddifyApiClient hiddifyClient, DatabaseManager dbManager, YooKassaPayment yooKassaPayment) {
@@ -392,9 +359,6 @@ public class BotLogic extends TelegramLongPollingBot {
 
             // Извлекаем payment_id из URL
             String paymentId = confirmationUrl.substring(confirmationUrl.lastIndexOf("=") + 1);
-            
-            // Сохраняем информацию о платеже с timestamp
-            paymentTracker.put(paymentId, new PaymentInfo(userId, chatId));
             
             String text = "💳 Для оплаты перейдите по ссылке ниже:\n\n" + confirmationUrl +
                     "\n\n⏳ После оплаты нажмите кнопку 'Проверить оплату'";

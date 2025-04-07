@@ -1,17 +1,23 @@
 package org.example.hiddify;
 
-import com.google.gson.Gson;
-import com.google.gson.JsonObject;
-import okhttp3.*;
+import java.io.IOException;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.util.concurrent.TimeUnit;
+
 import org.example.config.HiddifyConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
-import java.io.IOException;
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
-import java.util.concurrent.TimeUnit;
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
+
+import okhttp3.MediaType;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.RequestBody;
+import okhttp3.Response;
 
 @Component
 public class HiddifyApiClient {
@@ -130,6 +136,71 @@ public class HiddifyApiClient {
             return null;
         }
     }
+
+
+    /**
+     * deepseek порекомендовал мне сделать вот так, потом посмотрю что лучше
+     * 
+    public String createUser(long userId, int gigabytes, int days) {
+        try {
+            String currentDate = LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE);
+
+            JsonObject userJson = new JsonObject();
+            userJson.addProperty("added_by_uuid", (String) null);
+            userJson.addProperty("comment", "Created via Telegram Bot");
+            userJson.addProperty("current_usage_GB", 0);
+            // ... остальные свойства ...
+
+            String jsonPayload = gson.toJson(userJson);
+            logger.info("Sending user creation request: {}", jsonPayload);
+
+            RequestBody body = RequestBody.create(jsonPayload, MediaType.get("application/json"));
+            String fullUrl = apiBaseUrl + adminProxyPath + "/api/v2/admin/user/";
+
+            Request request = new Request.Builder()
+                    .url(fullUrl)
+                    .addHeader("Content-Type", "application/json")
+                    .addHeader("Accept", "application/json")
+                    .addHeader("Hiddify-API-Key", secretApiKey)
+                    .post(body)
+                    .build();
+
+            try (Response response = httpClient.newCall(request).execute()) {
+                logger.info("Response code: {}", response.code());
+
+                if (!response.isSuccessful()) {
+                    try (ResponseBody errorBody = response.body()) {
+                        String errorContent = errorBody != null ? errorBody.string() : "No response body";
+                        logger.error("Failed to create user. Status code: {}, Error: {}", 
+                                response.code(), errorContent);
+                    }
+                    return null;
+                }
+
+                try (ResponseBody responseBody = response.body()) {
+                    if (responseBody == null) {
+                        logger.error("Response body is null");
+                        return null;
+                    }
+
+                    String responseContent = responseBody.string();
+                    logger.info("Response body: {}", responseContent);
+
+                    JsonObject responseJson = gson.fromJson(responseContent, JsonObject.class);
+                    if (responseJson.has("uuid")) {
+                        return generateConnectionLink(responseJson.get("uuid").getAsString());
+                    } else {
+                        logger.error("UUID not found in response: {}", responseContent);
+                        return null;
+                    }
+                }
+            }
+        } catch (IOException e) {
+            logger.error("Error creating Hiddify user: {}", e.getMessage(), e);
+            return null;
+        }
+    }
+     */
 
     /**
      * Генерирует ссылку для подключения к VPN на основе UUID пользователя и имени
